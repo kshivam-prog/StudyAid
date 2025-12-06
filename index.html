@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>StudyAid — Assignments & Presentations</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg1: #071029; /* deep black-blue */
+            --bg2: #0f3a5b; /* skyblue dark */
+            --accent: #7bdff6; /* skyblue light */
+            --muted: #9aa6b2;
+            --card: rgba(255,255,255,0.03);
+            --glass: rgba(255,255,255,0.04);
+            --blur: 8px;
+            --radius: 14px;
+        }
+        *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+        html,body{height:100%;margin:0;background:linear-gradient(160deg,var(--bg1),var(--bg2));color:#eef2f7; -webkit-font-smoothing:antialiased;}
+        a{color:var(--accent);text-decoration:none}
+        .app{
+            max-width:1100px;margin:24px auto;padding:18px;
+            display:grid;grid-template-columns:72px 1fr;gap:18px;
+        }
+
+        /* Profile column (left) */
+        .sidebar{
+            position:relative;
+            display:flex;flex-direction:column;align-items:center;gap:18px;
+        }
+        .avatar{
+            width:64px;height:64px;border-radius:50%;
+            background:linear-gradient(145deg,var(--accent),#82cbe9);
+            box-shadow:0 6px 20px rgba(0,0,0,0.5), inset 0 -6px 30px rgba(255,255,255,0.03);
+            display:grid;place-items:center;font-weight:700;color:#052; font-size:20px;
+            cursor:pointer;border:3px solid rgba(255,255,255,0.06);
+        }
+        .nav{
+            display:flex;flex-direction:column;gap:12px;width:100%;
+        }
+        .nav button{
+            background:transparent;border:0;color:var(--muted);padding:10px;border-radius:10px;cursor:pointer;
+            transition:all .25s;display:flex;align-items:center;gap:10px;font-weight:600;
+        }
+        .nav button.active, .nav button:hover{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);color:var(--accent);transform:translateX(6px)}
+        .content{
+            background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border-radius:var(--radius);padding:20px;backdrop-filter: blur(var(--blur));
+            min-height:70vh;box-shadow:0 10px 30px rgba(2,6,23,0.6);
+            overflow:hidden;position:relative;
+        }
+
+        header.top{
+            display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;
+        }
+        .search{
+            display:flex;align-items:center;background:var(--glass);padding:8px;border-radius:10px;gap:8px;color:var(--muted);
+        }
+        .btn{
+            padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,var(--accent),#bcdff7);border:0;color:#052;font-weight:700;cursor:pointer;
+            box-shadow:0 6px 20px rgba(32,170,200,0.06);
+        }
+
+        /* cards and responsive layout */
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+        .card{background:var(--card);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+        .muted{color:var(--muted);font-size:13px}
+
+        /* form styles */
+        label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
+        input[type="text"],input[type="email"],input[type="password"],select,textarea{
+            width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;
+            outline:none;resize:vertical;
+        }
+
+        /* loader / intro overlay */
+        .intro{
+            position:fixed;inset:0;display:grid;place-items:center;z-index:9999;
+            background:linear-gradient(180deg, rgba(7,16,41,0.95), rgba(15,58,91,0.85));backdrop-filter: blur(6px);
+            animation:fadeOut 0.9s ease forwards 2.4s; /* auto hide after intro text */
+        }
+        .intro .box{padding:28px;border-radius:16px;text-align:center;max-width:620px}
+        .intro h1{margin:0;font-size:36px;color:var(--accent);letter-spacing:0.6px}
+        .intro p{color:var(--muted);margin-top:8px}
+
+        @keyframes fadeOut {
+            to{opacity:0;transform:translateY(-6px);pointer-events:none;visibility:hidden}
+        }
+
+        /* auth modal */
+        .modal{
+            position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,rgba(4,10,20,0.6),rgba(4,10,20,0.6));z-index:9998;
+            padding:18px;backdrop-filter: blur(6px);
+        }
+        .auth{
+            background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+            padding:18px;border-radius:14px;max-width:720px;width:100%;display:grid;grid-template-columns:1fr 320px;gap:12px;
+            border:1px solid rgba(255,255,255,0.04);
+        }
+        .brand{
+            display:flex;flex-direction:column;gap:16px;align-items:flex-start;justify-content:center;padding:8px;
+        }
+        .switch{display:flex;gap:8px;}
+        .terms{font-size:13px;color:var(--muted);line-height:1.3}
+        .small{font-size:13px;color:var(--muted)}
+
+        /* t&c popup */
+        .tc{
+            position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10001;
+            background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+            border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.04);max-width:640px;width:94%;
+            box-shadow:0 10px 40px rgba(0,0,0,0.6);
+        }
+        .tc h3{margin:0 0 8px 0;color:var(--accent)}
+        .tc .body{max-height:280px;overflow:auto;color:var(--muted);font-size:14px}
+
+        /* responsive */
+        @media (max-width:880px){
+            .app{grid-template-columns:1fr; padding:12px}
+            .auth{grid-template-columns:1fr}
+            .sidebar{flex-direction:row;justify-content:space-between;padding:6px}
+            .avatar{width:56px;height:56px}
+        }
+    </style>
+</head>
+<body>
+
+<div class="intro" id="intro">
+    <div class="box">
+        <h1>Welcome to StudyAid</h1>
+        <p class="muted">Fast, clean assignment & presentation help — tailored, affordable, and real-time.</p>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:14px">
+            <button class="btn" onclick="closeIntro()">Enter</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="authModal" style="display:grid">
+    <div class="auth">
+        <div class="brand">
+            <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(45deg,var(--accent),#9EE6FB);display:grid;place-items:center;font-weight:800;color:#052">SA</div>
+                <div>
+                    <h2 style="margin:0">StudyAid</h2>
+                    <div class="muted" style="font-size:13px">Assignments & Presentations — Signup or Login</div>
+                </div>
+            </div>
+            <p class="terms">Create an account to request services, track orders, and get notifications in real-time. We use Firebase for secure authentication and data storage.</p>
+            <div class="small">Already a member? Use the login form on the right.</div>
+        </div>
+
+        <div style="padding:8px;">
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+                <button id="showSignup" class="btn" style="flex:1;background:linear-gradient(90deg,#fff,#daf8ff)">Sign up</button>
+                <button id="showLogin" class="btn" style="flex:1;background:transparent;color:var(--muted)">Login</button>
+            </div>
+
+            <div id="signupForm">
+                <label>Full name</label>
+                <input id="su_name" type="text" placeholder="Your name" />
+                <label>Email</label>
+                <input id="su_email" type="email" placeholder="you@example.com" />
+                <label>Password</label>
+                <input id="su_pass" type="password" placeholder="Choose a secure password" />
+                <label>Phone (optional)</label>
+                <input id="su_phone" type="text" placeholder="eg. 9876543210" />
+                <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+                    <button id="doSignup" class="btn" style="flex:1">Create account</button>
+                    <button id="guestBtn" class="btn" style="background:transparent;color:var(--muted)">Continue as guest</button>
+                </div>
+            </div>
+
+            <div id="loginForm" style="display:none">
+                <label>Email</label>
+                <input id="li_email" type="email" />
+                <label>Password</label>
+                <input id="li_pass" type="password" />
+                <div style="display:flex;gap:8px;margin-top:10px">
+                    <button id="doLogin" class="btn" style="flex:1">Login</button>
+                    <button id="resetPass" class="btn" style="background:transparent;color:var(--muted)">Forgot?</button>
+                </div>
+                <div class="muted" style="margin-top:10px;font-size:13px">By signing in you agree to our terms after account creation.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="termsModal" class="tc" style="display:none">
+    <h3>Terms & Conditions — StudyAid</h3>
+    <div class="body">
+        <p><strong>Service scope:</strong> We provide assignment typing, handwritten assignments (scanned), and presentation (PPT) services for 1st, 3rd, and 4th year student coursework. We do not provide solutions for math assignments. We accept tasks when the client asks us to create or transcribe content for them. We do not endorse academic dishonesty; please use our services responsibly and at your own discretion.</p>
+        <p><strong>Delivery & Revisions:</strong> Delivery timelines depend on the job size—discuss before order. Minor revisions are included within a short window; major scope changes may incur extra cost.</p>
+        <p><strong>Privacy:</strong> We store user details and orders securely using Firebase. Contact info is used for order updates only. We never share your data with third parties without consent.</p>
+        <p class="muted">By checking the box you accept these terms and agree to the storage of your data for order processing and communication.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+        <input id="acceptTc" type="checkbox" />
+        <label for="acceptTc" style="margin:0">I have read and accept these terms</label>
+        <button id="tcClose" class="btn" style="margin-left:auto" disabled>Continue</button>
+    </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none">
+    <div class="sidebar">
+        <div class="avatar" id="avatarBtn">SA</div>
+        <div class="nav" id="nav">
+            <button data-page="home" class="active">Home</button>
+            <button data-page="services">About / Services</button>
+            <button data-page="pricing">Pricing</button>
+            <button data-page="contact">Contact</button>
+            <button data-page="profile">Profile</button>
+            <button id="signoutBtn" style="margin-top:12px;background:transparent;color:#ffb3b3">Sign out</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <header class="top">
+            <div>
+                <h2 id="pageTitle">Home</h2>
+                <div class="muted" id="pageSubtitle">Secure. Fast. Responsive.</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <div class="search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="opacity:.75"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <input id="search" placeholder="Search orders or services" style="background:transparent;border:0;outline:none;color:inherit" />
+                </div>
+                <div class="muted" id="userEmailSmall">Not signed in</div>
+            </div>
+        </header>
+
+        <main id="pages">
+            <section id="home" class="page">
+                <div class="grid">
+                    <div class="card">
+                        <h3>Welcome</h3>
+                        <p class="muted">We help you create or transcribe assignments and presentations quickly. Use the Services page to place an order or Pricing to check rates.</p>
+                        <div style="margin-top:12px;display:flex;gap:8px">
+                            <button class="btn" onclick="go('services')">Request Service</button>
+                            <button class="btn" style="background:transparent;color:var(--muted)" onclick="go('pricing')">View Pricing</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h4>Your orders (real-time)</h4>
+                        <div id="ordersList" class="muted" style="margin-top:8px;max-height:220px;overflow:auto">No orders yet.</div>
+                    </div>
+
+                    <div class="card">
+                        <h4>Quick Contacts</h4>
+                        <p class="muted">Call: 9263775454 / 7016024581 / 9973976175</p>
+                        <p class="muted">Emails: pyushx06@gmail.com, sunrakuufinite@gmail.com, soundwave0@gmail.com</p>
+                        <div style="margin-top:10px">
+                            <button class="btn" onclick="go('contact')">Contact Us</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h4>How we work</h4>
+                        <ol class="muted" style="padding-left:16px;margin:0">
+                            <li>Place request with details (file, instructions, deadline).</li>
+                            <li>We confirm feasibility and price.</li>
+                            <li>Work is delivered via PDF or PPT and optionally printed.</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <section id="services" class="page" style="display:none">
+                <div class="grid">
+                    <div class="card">
+                        <h3>About Our Services</h3>
+                        <p class="muted">We accept typed assignments, handwritten conversion, and presentations. We do not solve math assignments. Communication and revision policies are handled case-by-case.</p>
+                        <h4 style="margin-top:12px">Place an Order</h4>
+                        <form id="orderForm">
+                            <label>Type of service</label>
+                            <select id="orderType">
+                                <option value="handwritten">Hand written assignment</option>
+                                <option value="ppt">PPT presentation</option>
+                                <option value="laptop_pdf">Laptop assignment (PDF)</option>
+                                <option value="laptop_print">Laptop assignment (print + spiral)</option>
+                            </select>
+
+                            <label>Title / Subject</label>
+                            <input id="orderTitle" type="text" required/>
+
+                            <label>Details / Instructions</label>
+                            <textarea id="orderDesc" rows="4" placeholder="Provide details, pages count, deadline etc." required></textarea>
+
+                            <label>Files (optional)</label>
+                            <input id="orderFiles" type="file" multiple />
+                            <div style="display:flex;gap:8px;margin-top:12px">
+                                <button class="btn" type="submit">Submit order</button>
+                                <button class="btn" type="button" style="background:transparent;color:var(--muted)" onclick="clearOrderForm()">Clear</button>
+                            </div>
+                        </form>
+                        <div id="orderMsg" class="muted" style="margin-top:10px"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Delivery & Formats</h3>
+                        <p class="muted">We deliver typed work as PDF and PPT files. Handwritten assignments are scanned and returned as images/PDFs. For print option we can deliver physical copies (extra charges/time).</p>
+                        <h4 style="margin-top:12px">Turnaround</h4>
+                        <p class="muted">Depends on complexity & load. Rush jobs can be requested; price negotiable in some cases.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="pricing" class="page" style="display:none">
+                <div class="grid">
+                    <div class="card">
+                        <h3>Pricing (fixed)</h3>
+                        <p class="muted">We keep these fixed values for clarity. All prices in INR.</p>
+                        <ul class="muted" style="line-height:1.8">
+                            <li><strong>Hand written assignment</strong> - 300rs to 500rs (depends on length, negotiable)</li>
+                            <li><strong>PPT presentation</strong> - 300rs (non negotiable)</li>
+                            <li><strong>Laptop made assignments (PDF only)</strong> - 200rs (negotiable)</li>
+                            <li><strong>Laptop made assignments (printout with spiral bind)</strong> - 250rs - 300rs (non-negotiable, depends on pages)</li>
+                        </ul>
+                        <p class="muted" style="margin-top:10px"><strong>Important:</strong> we do all assignments only if it is we are going to copy , we don't do maths assignment.</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>Unique pricing visual</h3>
+                        <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+                            <div style="flex:1;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent)">
+                                <div class="muted">Hand written</div>
+                                <div style="font-size:20px;font-weight:800;color:var(--accent)">300 - 500 INR</div>
+                            </div>
+                            <div style="flex:1;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent)">
+                                <div class="muted">PPT</div>
+                                <div style="font-size:20px;font-weight:800;color:var(--accent)">300 INR</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:10px">
+                            <div style="flex:1;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent)">
+                                <div class="muted">Laptop (PDF)</div>
+                                <div style="font-size:20px;font-weight:800;color:var(--accent)">200 INR</div>
+                            </div>
+                            <div style="flex:1;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent)">
+                                <div class="muted">Laptop (Print)</div>
+                                <div style="font-size:20px;font-weight:800;color:var(--accent)">250 - 300 INR</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="contact" class="page" style="display:none">
+                <div class="grid">
+                    <div class="card">
+                        <h3>Contact Us</h3>
+                        <p class="muted">Reach out on phone or email. We'll respond promptly during our working hours.</p>
+                        <div style="margin-top:10px">
+                            <p class="muted"><strong>Phones:</strong><br/>9263775454<br/>7016024581<br/>9973976175</p>
+                            <p class="muted"><strong>Emails:</strong><br/>pyushx06@gmail.com<br/>sunrakuufinite@gmail.com<br/>soundwave0@gmail.com</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Message us</h3>
+                        <form id="contactForm">
+                            <label>Your name</label><input id="contact_name" type="text" required/>
+                            <label>Your email</label><input id="contact_email" type="email" required/>
+                            <label>Message</label><textarea id="contact_msg" rows="4" required></textarea>
+                            <div style="display:flex;gap:8px;margin-top:10px">
+                                <button class="btn" type="submit">Send</button>
+                                <button class="btn" type="button" style="background:transparent;color:var(--muted)" onclick="document.getElementById('contactForm').reset()">Clear</button>
+                            </div>
+                            <div id="contactMsg" class="muted" style="margin-top:10px"></div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section id="profile" class="page" style="display:none">
+                <div class="card">
+                    <h3>Your Profile</h3>
+                    <p class="muted" id="profileName">—</p>
+                    <p class="muted" id="profileEmail">—</p>
+                    <p class="muted" id="profilePhone">—</p>
+                    <div style="margin-top:12px">
+                        <button class="btn" id="editProfileBtn" style="background:transparent;color:var(--muted)">Edit profile</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script type="module">
+    // Firebase v9 modular imports (CDN)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    // NOTE: Import 'getDoc' and 'setDoc'
+    import { getFirestore, doc, setDoc, addDoc, collection, onSnapshot, serverTimestamp, query, where, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // TODO: Replace with your Firebase project config
+    const firebaseConfig = {
+        apiKey: "AIzaSyApz4b_g7gKfseVLcWI83WbgCzwXkM3gXk",
+        authDomain: "studyaid-4011d.firebaseapp.com",
+        projectId: "studyaid-4011d",
+        storageBucket: "studyaid-4011d.firebasestorage.app",
+        messagingSenderId: "626294850752",
+        appId: "1:626294850752:web:85ae876a32dbe69ff41925"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // UI helpers
+    const intro = document.getElementById('intro');
+    const authModal = document.getElementById('authModal');
+    const mainApp = document.getElementById('mainApp');
+    const ordersList = document.getElementById('ordersList');
+    const userEmailSmall = document.getElementById('userEmailSmall');
+    const pageTitle = document.getElementById('pageTitle');
+
+    // Profile Elements
+    const pName = document.getElementById('profileName');
+    const pEmail = document.getElementById('profileEmail');
+    const pPhone = document.getElementById('profilePhone');
+    const avatarBtn = document.getElementById('avatarBtn');
+    const editProfileBtn = document.getElementById('editProfileBtn');
+
+    // Profile form elements (newly added for 'Edit Profile' function)
+    const profileSection = document.getElementById('profile'); 
+    
+    // --- Start: UI Logic (No major functional changes here) ---
+
+    window.closeIntro = function(){
+        intro.style.display = 'none';
+    };
+
+    document.getElementById('showSignup').addEventListener('click', ()=>{
+        document.getElementById('signupForm').style.display='block';
+        document.getElementById('loginForm').style.display='none';
+    });
+    document.getElementById('showLogin').addEventListener('click', ()=>{
+        document.getElementById('signupForm').style.display='none';
+        document.getElementById('loginForm').style.display='block';
+    });
+
+    // Sign up
+    document.getElementById('doSignup').addEventListener('click', async ()=>{
+        const name = document.getElementById('su_name').value.trim();
+        const email = document.getElementById('su_email').value.trim();
+        const pass = document.getElementById('su_pass').value;
+        const phone = document.getElementById('su_phone').value.trim();
+        if(!email || !pass || !name){ alert('Provide name, email and password'); return; }
+        try{
+            const cred = await createUserWithEmailAndPassword(auth, email, pass);
+            // Update auth profile name
+            await updateProfile(cred.user, { displayName: name }); 
+            // store user document using UID as document ID
+            await setDoc(doc(db, 'users', cred.user.uid), {
+                name, email, phone, createdAt: serverTimestamp()
+            });
+            authModal.style.display='none';
+            mainApp.style.display='grid';
+            showTerms();
+        }catch(e){
+            alert('Signup error: '+e.message);
+        }
+    });
+
+    // Login
+    document.getElementById('doLogin').addEventListener('click', async ()=>{
+        const email = document.getElementById('li_email').value.trim();
+        const pass = document.getElementById('li_pass').value;
+        try{
+            await signInWithEmailAndPassword(auth, email, pass);
+            authModal.style.display='none';
+            mainApp.style.display='grid';
+        }catch(e){
+            alert('Login error: '+e.message);
+        }
+    });
+
+    // Guest
+    document.getElementById('guestBtn').addEventListener('click', ()=>{
+        authModal.style.display='none';
+        mainApp.style.display='grid';
+        userEmailSmall.textContent = 'Guest';
+    });
+
+    // Reset password
+    document.getElementById('resetPass').addEventListener('click', async ()=>{
+        const email = document.getElementById('li_email').value.trim();
+        if(!email){ alert('Enter your email to reset password'); return; }
+        try{
+            await sendPasswordResetEmail(auth, email);
+            alert('Password reset sent to '+email);
+        }catch(e){ alert('Error: '+e.message); }
+    });
+
+    // Sign out
+    document.getElementById('signoutBtn').addEventListener('click', async ()=>{
+        try{
+            await signOut(auth);
+            location.reload();
+        }catch(e){ console.error(e); }
+    });
+
+    // Terms modal handling
+    function showTerms(){
+        document.getElementById('termsModal').style.display = 'block';
+        const tcClose = document.getElementById('tcClose');
+        const accept = document.getElementById('acceptTc');
+        accept.checked = false;
+        tcClose.disabled = true;
+        accept.onchange = ()=> tcClose.disabled = !accept.checked;
+        tcClose.onclick = ()=> document.getElementById('termsModal').style.display='none';
+    }
+    document.getElementById('tcClose').addEventListener('click', ()=> document.getElementById('termsModal').style.display='none');
+
+    // Page navigation
+    document.querySelectorAll('.nav button[data-page]').forEach(btn=>{
+        btn.addEventListener('click', ()=> {
+            document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            const p = btn.getAttribute('data-page');
+            go(p);
+        });
+    });
+    function go(page){
+        document.querySelectorAll('.page').forEach(s=>s.style.display='none');
+        document.getElementById(page).style.display='block';
+        pageTitle.textContent = page[0].toUpperCase()+page.slice(1);
+        document.getElementById('pageSubtitle').textContent = '';
+        if(page === 'profile' && auth.currentUser) {
+            updateProfileSection(auth.currentUser); 
+        }
+    }
+
+    // --- End: UI Logic ---
+
+    // --- Start: Core Fixes ---
+
+    // 1. Order submission FIX: Added error handling and user check.
+    document.getElementById('orderForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const type = document.getElementById('orderType').value;
+        const title = document.getElementById('orderTitle').value.trim();
+        const desc = document.getElementById('orderDesc').value.trim();
+        const user = auth.currentUser;
+
+        if(!user){ 
+            document.getElementById('orderMsg').textContent = 'Error: You must be signed in to place an order.';
+            return; 
+        }
+
+        if(!title || !desc){
+            document.getElementById('orderMsg').textContent = 'Error: Please provide a title/subject and details.';
+            return;
+        }
+
+        try{
+            // The file upload is client-side only (no actual upload here), but the core data is saved.
+            await addDoc(collection(db, 'orders'), {
+                uid: user.uid,
+                type, title, desc, status: 'pending',
+                createdAt: serverTimestamp()
+            });
+            document.getElementById('orderMsg').textContent = 'Order submitted. We will contact you soon.';
+            document.getElementById('orderForm').reset();
+            // Go to home to see the new order
+            go('home'); 
+        }catch(e){ 
+            console.error(e); 
+            document.getElementById('orderMsg').textContent = 'Order submission failed: '+e.message;
+        }
+    });
+
+    function clearOrderForm(){ document.getElementById('orderForm').reset(); }
+
+    // Contact form sending (saves message) - Already correct, minimal update to error reporting.
+    document.getElementById('contactForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const name = document.getElementById('contact_name').value.trim();
+        const email = document.getElementById('contact_email').value.trim();
+        const msg = document.getElementById('contact_msg').value.trim();
+        const contactMsgEl = document.getElementById('contactMsg'); 
+        try{
+            await addDoc(collection(db, 'messages'), { name, email, msg, createdAt: serverTimestamp() });
+            contactMsgEl.textContent = 'Message sent. Thank you!';
+            document.getElementById('contactForm').reset();
+        }catch(err){ 
+            console.error(err); 
+            contactMsgEl.textContent = 'Error sending message. Please check the Firebase Security Rules (see details below).'; 
+        }
+    });
+
+    // 2. Profile Display and Edit Fix (New/Updated Functions)
+    
+    // Function to render the profile section 
+    async function updateProfileSection(user) {
+        if (!user) return;
+        
+        // Show static profile view
+        profileSection.innerHTML = `
+            <div class="card">
+                <h3>Your Profile</h3>
+                <p class="muted" id="profileName">Name: ${user.displayName || '—'}</p>
+                <p class="muted" id="profileEmail">Email: ${user.email || '—'}</p>
+                <p class="muted" id="profilePhone">Phone: —</p>
+                <div style="margin-top:12px">
+                    <button class="btn" id="editProfileBtn" style="background:transparent;color:var(--muted)">Edit profile</button>
+                    <button class="btn" onclick="go('home')" style="background:transparent;color:var(--accent);margin-left:10px">Back to Home</button>
+                </div>
+                <div id="profileMsg" class="muted" style="margin-top:10px"></div>
+            </div>`;
+        
+        // Re-get references after DOM update
+        const profileMsg = document.getElementById('profileMsg');
+        const editBtn = document.getElementById('editProfileBtn');
+
+        try {
+            // Fetch Firestore document for additional data (like phone)
+            const userDocRef = doc(db, 'users', user.uid);
+            const uDocSnap = await getDoc(userDocRef); 
+            
+            if(uDocSnap.exists()){
+                const ud = uDocSnap.data();
+                document.getElementById('profileName').textContent = `Name: ${ud.name || user.displayName || '—'}`;
+                document.getElementById('profileEmail').textContent = `Email: ${ud.email || user.email || '—'}`;
+                document.getElementById('profilePhone').textContent = `Phone: ${ud.phone || '—'}`;
+
+                // Make edit button functional
+                editBtn.onclick = () => showEditForm(user.uid, ud.name || user.displayName, ud.phone);
+            } else {
+                // If firestore doc doesn't exist, show only auth data
+                editBtn.onclick = () => showEditForm(user.uid, user.displayName, '');
+            }
+            avatarBtn.textContent = (user.displayName || user.email || 'U')[0].toUpperCase();
+
+        } catch(e) {
+            console.error("Error fetching user profile data:", e);
+            profileMsg.textContent = 'Error loading profile data.';
+        }
+    }
+    
+    // Function to show and handle the edit form (New)
+    function showEditForm(uid, currentName, currentPhone) {
+        profileSection.innerHTML = `
+            <div class="card">
+                <h3>Edit Profile</h3>
+                <form id="editForm">
+                    <label>Full Name</label>
+                    <input id="edit_name" type="text" value="${currentName || ''}" required/>
+                    <label>Phone (optional)</label>
+                    <input id="edit_phone" type="text" value="${currentPhone || ''}"/>
+                    <div style="display:flex;gap:8px;margin-top:12px">
+                        <button class="btn" type="submit">Save Changes</button>
+                        <button class="btn" type="button" style="background:transparent;color:var(--muted)" onclick="updateProfileSection(auth.currentUser)">Cancel</button>
+                    </div>
+                    <div id="editMsg" class="muted" style="margin-top:10px"></div>
+                </form>
+            </div>
+        `;
+
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newName = document.getElementById('edit_name').value.trim();
+            const newPhone = document.getElementById('edit_phone').value.trim();
+            const editMsg = document.getElementById('editMsg');
+            const user = auth.currentUser;
+
+            if (!user) return;
+
+            try {
+                // 1. Update Firebase Auth display name
+                await updateProfile(user, { displayName: newName });
+
+                // 2. Update Firestore document (where phone is stored)
+                const userDocRef = doc(db, 'users', uid);
+                
+                // FIX: Use setDoc with { merge: true } to create the document if it's missing, 
+                // and update it otherwise.
+                await setDoc(userDocRef, { 
+                    name: newName, 
+                    phone: newPhone
+                }, { merge: true }); // <--- FIX APPLIED HERE
+
+                editMsg.textContent = 'Profile updated successfully!';
+                // Reload profile view after a short delay
+                setTimeout(() => updateProfileSection(user), 1500);
+
+            } catch (e) {
+                console.error("Profile update failed:", e);
+                editMsg.textContent = 'Error updating profile: ' + e.message;
+            }
+        });
+    }
+
+    // Realtime orders listener for signed in user
+    let unsubscribeOrders = null;
+    onAuthStateChanged(auth, async (user)=>{
+        if(user){
+            userEmailSmall.textContent = user.email || 'Signed in';
+            if (intro.style.display !== 'none') {
+                intro.style.display = 'none';
+            }
+
+            // Realtime orders where uid == user.uid
+            if(unsubscribeOrders) unsubscribeOrders();
+            const q = query(collection(db, 'orders'), where('uid','==', user.uid));
+            unsubscribeOrders = onSnapshot(q, (snap)=>{
+                if(snap.empty){ ordersList.innerHTML = '<div class="muted">No orders yet.</div>'; return; }
+                ordersList.innerHTML = '';
+                snap.forEach(docu=>{
+                    const d = docu.data();
+                    const el = document.createElement('div');
+                    el.style.padding='8px';el.style.borderBottom='1px solid rgba(255,255,255,0.02)';
+                    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${escapeHtml(d.title || 'Untitled')}</strong><div class="muted" style="font-size:13px">${escapeHtml(d.type||'')}</div></div><div class="muted" style="font-size:13px">${d.status||'pending'}</div></div>`;
+                    ordersList.appendChild(el);
+                });
+            });
+            
+            // Update the profile display on sign-in
+            updateProfileSection(user); 
+
+        } else {
+            userEmailSmall.textContent = 'Not signed in';
+            if(unsubscribeOrders) { unsubscribeOrders(); unsubscribeOrders = null; ordersList.innerHTML = '<div class="muted">Sign in to view orders.</div>'; }
+        }
+    });
+
+    // small utilities
+    function escapeHtml(s){ if(!s) return ''; return s.toString().replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    // nav quick go
+    window.go = go;
+
+    // hide intro automatically after 3.2s if not closed
+    setTimeout(()=>{ intro.style.display='none'; }, 3200);
+
+    // initial: show sign up/login (authModal visible)
+    onAuthStateChanged(auth, (user)=>{
+        if(user){
+            authModal.style.display='none';
+            mainApp.style.display='grid';
+        } else {
+            authModal.style.display='grid';
+            mainApp.style.display='none';
+        }
+    });
+
+</script>
+</body>
+</html>
